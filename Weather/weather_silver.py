@@ -26,4 +26,32 @@ df2 = df2.select(
      ,"location.*"
 
 )
+
 df2.display()
+
+# COMMAND ----------
+
+df2 = df2.drop("condition")
+
+df_columns = df2.columns
+duplicate_col_index = [idx for idx, val in enumerate(df_columns) if val in df_columns[:idx]]
+duplicate_col_index
+
+for i in duplicate_col_index:
+    df_columns[i] = f"{df_columns[i]}_duplicated"
+
+df2 = df2.toDF(*df_columns)
+
+
+df2.selectExpr("uv_duplicated as uv_hour")
+df2.printSchema()
+
+# COMMAND ----------
+
+df2.write.mode("overwrite").saveAsTable("dev.silver.weather_history")
+
+# COMMAND ----------
+
+# MAGIC %sql
+# MAGIC
+# MAGIC select * from dev.silver.weather_history
