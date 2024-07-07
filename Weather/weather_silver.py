@@ -2,7 +2,7 @@
 from pyspark.sql.functions import explode
 from pyspark.sql import functions as F
 
-df = spark.read.option("multiline", "true").json("/Volumes/dev/raw/weather/")
+df = spark.read.option("multiline", "true").json("/Volumes/raw/weather/history")
 
 df.printSchema()
 
@@ -48,10 +48,10 @@ df2.printSchema()
 
 # COMMAND ----------
 
-df2.write.mode("overwrite").saveAsTable("dev.silver.weather_history")
+df2.write.mode("overwrite").saveAsTable("silver.weather.weather_history")
 
 # COMMAND ----------
 
 # MAGIC %sql
 # MAGIC
-# MAGIC select * from dev.silver.weather_history
+# MAGIC select * from silver.weather.weather_history limit 50
