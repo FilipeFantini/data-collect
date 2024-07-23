@@ -7,7 +7,7 @@ base = "https://api.openf1.org/v1/"
 
 # COMMAND ----------
 
-def get_and_save_parquet(url, dimension):
+def get_and_save_parquet(url, dimension,  extra_info=""):
     response = requests.get(url)
     data = response.json()
     if response.status_code == 200:
@@ -19,12 +19,12 @@ def get_and_save_parquet(url, dimension):
         df.coalesce(1).write.mode("overwrite").parquet(path)
     else: print(response.json())
 
-def get_and_save_json(url, dimension):
+def get_and_save_json(url, dimension, extra_info=""):
     response = requests.get(url)
     data = response.json()
     if response.status_code == 200:
         now = datetime.datetime.now().strftime("%Y-%m")
-        filename = f"{dimension}_{now}"
+        filename = f"{dimension}{extra_info}_{now}"
         path = f"/Volumes/raw/formula1/{dimension}/{filename}.json"
         with open(path, "w") as open_file:
             json.dump(data, open_file)
@@ -43,4 +43,14 @@ get_and_save_json(f"{base}meetings", "meetings")
 #get sessions
 path = "/Volumes/raw/formula1/meetings/"
 df = spark.read.json(path)
-df.select(df.meeting_key).show()
+list_meetings = list(df.select(df.meeting_key).toPandas()["meeting_key"])
+
+for i in list_meetings:
+    get_and_save_json(f"{base}sessions?meeting_key={i}", "sessions", f"mkey{i}")
+    print(i)
+
+# COMMAND ----------
+
+path = "/Volumes/raw/formula1/sessions/"
+df = spark.read.json(path)
+df.display()
