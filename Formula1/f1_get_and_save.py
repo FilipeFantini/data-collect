@@ -18,17 +18,11 @@ base = "https://api.openf1.org/v1/"
 
 # COMMAND ----------
 
-def get_and_save_parquet(url, dimension,  extra_info=""):
-    response = requests.get(url)
-    data = response.json()
-    if response.status_code == 200:
-        now = datetime.datetime.now().strftime("%Y-%m")
-        filename = f"{dimension}_{now}"
-        path = f"/Volumes/raw/formula1/{dimension}/{filename}.parquet"
-        df = spark.createDataFrame(data)
-        df.display()
-        df.coalesce(1).write.mode("overwrite").parquet(path)
-    else: print(response.json())
+# MAGIC %md
+# MAGIC ## Get and Save main function
+# MAGIC Saving in JSON since I got better write performance compared to parquet. It will eventually become a Delta table in Silver.``
+
+# COMMAND ----------
 
 def get_and_save_json(url, dimension, *args):
     try:
@@ -62,10 +56,6 @@ def get_and_save_json(url, dimension, *args):
 
 # COMMAND ----------
 
-df2 = spark.read.json("/Volumes/raw/metadata/load_logs/").display()
-
-# COMMAND ----------
-
 # MAGIC %md
 # MAGIC ###Get Meetings 
 # MAGIC Meeting = Grand Prix, or testing event
@@ -75,8 +65,6 @@ df2 = spark.read.json("/Volumes/raw/metadata/load_logs/").display()
 #get meetings
 get_and_save_json(f"{base}meetings", "meetings")
 
-
-#get_data(f"{base}sessions", "sessions")
 
 # COMMAND ----------
 
@@ -114,7 +102,7 @@ for i in list_meetings:
 
 # MAGIC %md
 # MAGIC ###Get Car Details 
-# MAGIC Based on current Meetings and Sessions already available
+# MAGIC Based on current Meetings and Sessions already available. Also needed to break down by gear number due to data volume
 
 # COMMAND ----------
 
@@ -124,17 +112,9 @@ list_sessions = list(spark.read.json(sessions).toPandas()["session_key"])
 drivers = "/Volumes/raw/formula1/drivers/"
 list_drivers = list(spark.read.json(drivers).toPandas()["driver_number"].drop_duplicates())
 
-#breaking because it's timing out from source, I need to paginate it by driver and session key, too much data
-
 for i in list_drivers:
     for j in list_sessions:
         for n_gear in range(0,9):
             try:
                 get_and_save_json(f"{base}car_data?driver_number={i}&session_key={j}&n_gear={n_gear}", "car_data", f"_skey{j}_dn{i}_ng{n_gear}")
             except: continue
-
-# COMMAND ----------
-
-path = "/Volumes/raw/formula1/sessions/"
-df = spark.read.json(path)
-df.display()
